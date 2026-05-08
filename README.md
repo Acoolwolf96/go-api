@@ -12,8 +12,6 @@ A working CI/CD pipeline that runs on my own hardware. When I push code to GitHu
 
 | Component | What it does |
 
-|-----------|---------------|
-
 | Go | REST API code |
 
 | Docker | Container packaging |
@@ -33,8 +31,6 @@ A working CI/CD pipeline that runs on my own hardware. When I push code to GitHu
 
 
 | Repo | Purpose |
-
-|---|---|
 
 | `go-api` | Application source code, tests, Dockerfile, CI workflow |
 
