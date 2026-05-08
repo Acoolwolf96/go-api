@@ -33,10 +33,10 @@ type Car struct {
 }
 
 type DealershipStats struct {
-	TotalCars     int     `json:"totalCars"`
-	AvgPrice      float64 `json:"avgPrice"`
-	TotalValue    float64 `json:"totalValue"`
-	BrandsCount   int     `json:"brandsCount"`
+	TotalCars   int     `json:"totalCars"`
+	AvgPrice    float64 `json:"avgPrice"`
+	TotalValue  float64 `json:"totalValue"`
+	BrandsCount int     `json:"brandsCount"`
 }
 
 var cars = []Car{
@@ -157,22 +157,23 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func carsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
-	// Support query params for filtering
+
 	brand := r.URL.Query().Get("brand")
 	featured := r.URL.Query().Get("featured") == "true"
-	
+	fuelType := r.URL.Query().Get("fuelType")
+
 	filteredCars := cars
+
 	if brand != "" {
 		temp := []Car{}
-		for _, car := range cars {
+		for _, car := range filteredCars {
 			if car.Brand == brand {
 				temp = append(temp, car)
 			}
 		}
 		filteredCars = temp
 	}
-	
+
 	if featured {
 		temp := []Car{}
 		for _, car := range filteredCars {
@@ -182,7 +183,17 @@ func carsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		filteredCars = temp
 	}
-	
+
+	if fuelType != "" {
+		temp := []Car{}
+		for _, car := range filteredCars {
+			if car.FuelType == fuelType {
+				temp = append(temp, car)
+			}
+		}
+		filteredCars = temp
+	}
+
 	json.NewEncoder(w).Encode(filteredCars)
 }
 
@@ -194,7 +205,7 @@ func carDetailHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid car ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	for _, car := range cars {
 		if car.ID == id {
 			json.NewEncoder(w).Encode(car)
@@ -206,22 +217,22 @@ func carDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 func statsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	brandsMap := make(map[string]bool)
 	var totalValue float64
-	
+
 	for _, car := range cars {
 		brandsMap[car.Brand] = true
 		totalValue += car.Price
 	}
-	
+
 	stats := DealershipStats{
 		TotalCars:   len(cars),
 		AvgPrice:    totalValue / float64(len(cars)),
 		TotalValue:  totalValue,
 		BrandsCount: len(brandsMap),
 	}
-	
+
 	json.NewEncoder(w).Encode(stats)
 }
 
@@ -237,8 +248,7 @@ func main() {
 	http.HandleFunc("/cars", carsHandler)
 	http.HandleFunc("/car/", carDetailHandler)
 	http.HandleFunc("/stats", statsHandler)
-	
-	log.Println(" LuxDrive Dealership API v2.0 starting on :8080")
-	log.Println(" Modern luxury car marketplace ready at http://localhost:8080")
+
+	log.Println("LuxDrive Dealership API v2.0 starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

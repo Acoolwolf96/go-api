@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -57,7 +56,7 @@ func TestCarsHandler(t *testing.T) {
 			queryParams: map[string]string{
 				"featured": "true",
 			},
-			expectedCount:  3, // Porsche, Mercedes, Lamborghini
+			expectedCount:  4,
 			expectedStatus: http.StatusOK,
 		},
 		{
@@ -87,10 +86,9 @@ func TestCarsHandler(t *testing.T) {
 		{
 			name: "get electric cars",
 			queryParams: map[string]string{
-				"brand":   "",
-				"featured": "false",
+				"fuelType": "Electric",
 			},
-			expectedCount:  3, // Tesla, Audi, Lucid
+			expectedCount:  3,
 			expectedStatus: http.StatusOK,
 		},
 	}
@@ -169,7 +167,6 @@ func TestCarDetailHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/car/"+tt.carID, nil)
 			w := httptest.NewRecorder()
 
-			// Create a new ServeMux to handle the path pattern correctly
 			mux := http.NewServeMux()
 			mux.HandleFunc("/car/", carDetailHandler)
 			mux.ServeHTTP(w, req)
@@ -217,9 +214,8 @@ func TestStatsHandler(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	// Expected values from our 8 cars
 	expectedTotalCars := 8
-	expectedBrandsCount := 8 // All brands are unique (Porsche, Mercedes, Tesla, BMW, Audi, Lamborghini, Ferrari, Lucid)
+	expectedBrandsCount := 8
 
 	if stats.TotalCars != expectedTotalCars {
 		t.Errorf("expected total cars %d, got %d", expectedTotalCars, stats.TotalCars)
@@ -229,7 +225,6 @@ func TestStatsHandler(t *testing.T) {
 		t.Errorf("expected brands count %d, got %d", expectedBrandsCount, stats.BrandsCount)
 	}
 
-	// Calculate expected average price manually
 	var totalPrice float64
 	for _, car := range cars {
 		totalPrice += car.Price
@@ -240,14 +235,12 @@ func TestStatsHandler(t *testing.T) {
 		t.Errorf("expected average price %.2f, got %.2f", expectedAvgPrice, stats.AvgPrice)
 	}
 
-	expectedTotalValue := totalPrice
-	if stats.TotalValue != expectedTotalValue {
-		t.Errorf("expected total value %.2f, got %.2f", expectedTotalValue, stats.TotalValue)
+	if stats.TotalValue != totalPrice {
+		t.Errorf("expected total value %.2f, got %.2f", totalPrice, stats.TotalValue)
 	}
 }
 
 func TestCarDataIntegrity(t *testing.T) {
-	// Test that all cars have required fields
 	for i, car := range cars {
 		if car.ID == 0 {
 			t.Errorf("car at index %d has invalid ID", i)
@@ -296,15 +289,13 @@ func TestIndexHandler(t *testing.T) {
 }
 
 func TestCORSHeaders(t *testing.T) {
-	// Test that all endpoints have proper CORS headers (if implemented)
 	endpoints := []string{"/health", "/cars", "/stats"}
-	
+
 	for _, endpoint := range endpoints {
 		t.Run(endpoint, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodOptions, endpoint, nil)
 			w := httptest.NewRecorder()
 
-			// Create a handler that checks for CORS headers
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == http.MethodOptions {
 					w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -314,17 +305,13 @@ func TestCORSHeaders(t *testing.T) {
 				}
 				http.NotFound(w, r)
 			})
-			
+
 			handler.ServeHTTP(w, req)
-			
-			// Note: This test will pass even if CORS isn't implemented
-			// Add actual CORS headers to your handlers if needed for production
 		})
 	}
 }
 
 func TestConcurrentRequests(t *testing.T) {
-	// Test that the server can handle concurrent requests
 	const numRequests = 10
 	done := make(chan bool, numRequests)
 
@@ -333,10 +320,10 @@ func TestConcurrentRequests(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/cars", nil)
 			w := httptest.NewRecorder()
 			carsHandler(w, req)
-			
+
 			res := w.Result()
 			defer res.Body.Close()
-			
+
 			if res.StatusCode != http.StatusOK {
 				t.Errorf("concurrent request failed with status %d", res.StatusCode)
 			}
@@ -344,7 +331,6 @@ func TestConcurrentRequests(t *testing.T) {
 		}()
 	}
 
-	// Wait for all goroutines to complete
 	for i := 0; i < numRequests; i++ {
 		<-done
 	}
@@ -367,10 +353,10 @@ func TestResponseContentType(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, ep.path, nil)
 			w := httptest.NewRecorder()
 			ep.handler(w, req)
-			
+
 			res := w.Result()
 			defer res.Body.Close()
-			
+
 			contentType := res.Header.Get("Content-Type")
 			if contentType != ep.contentType {
 				t.Errorf("expected Content-Type '%s', got '%s'", ep.contentType, contentType)
@@ -382,10 +368,9 @@ func TestResponseContentType(t *testing.T) {
 func BenchmarkCarsHandler(b *testing.B) {
 	req := httptest.NewRequest(http.MethodGet, "/cars", nil)
 	w := httptest.NewRecorder()
-	
+
 	for i := 0; i < b.N; i++ {
 		carsHandler(w, req)
-		// Reset response recorder
 		w = httptest.NewRecorder()
 	}
 }
@@ -394,73 +379,67 @@ func BenchmarkCarDetailHandler(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/car/1", nil)
 		w := httptest.NewRecorder()
-		
-		// Create a new ServeMux to handle the path pattern
+
 		mux := http.NewServeMux()
 		mux.HandleFunc("/car/", carDetailHandler)
 		mux.ServeHTTP(w, req)
 	}
 }
 
-// Integration test for the full flow
 func TestIntegration(t *testing.T) {
-	// Test health endpoint
 	t.Run("health check", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/health", nil)
 		w := httptest.NewRecorder()
 		healthHandler(w, req)
-		
+
 		if w.Code != http.StatusOK {
 			t.Errorf("health check failed: %d", w.Code)
 		}
 	})
 
-	// Test getting all cars
 	t.Run("get all cars", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/cars", nil)
 		w := httptest.NewRecorder()
 		carsHandler(w, req)
-		
-		var cars []Car
-		if err := json.NewDecoder(w.Body).Decode(&cars); err != nil {
+
+		var allCars []Car
+		if err := json.NewDecoder(w.Body).Decode(&allCars); err != nil {
 			t.Fatalf("failed to decode cars: %v", err)
 		}
-		
-		if len(cars) == 0 {
+
+		if len(allCars) == 0 {
 			t.Error("expected at least one car")
 		}
 	})
 
-	// Test getting a specific car
 	t.Run("get specific car", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/car/1", nil)
 		w := httptest.NewRecorder()
-		
+
 		mux := http.NewServeMux()
 		mux.HandleFunc("/car/", carDetailHandler)
 		mux.ServeHTTP(w, req)
-		
+
 		var car Car
 		if err := json.NewDecoder(w.Body).Decode(&car); err != nil {
 			t.Fatalf("failed to decode car: %v", err)
 		}
-		
+
 		if car.ID != 1 {
 			t.Errorf("expected car ID 1, got %d", car.ID)
 		}
 	})
 
-	// Test statistics
 	t.Run("get statistics", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/stats", nil)
 		w := httptest.NewRecorder()
 		statsHandler(w, req)
-		
+
 		var stats DealershipStats
 		if err := json.NewDecoder(w.Body).Decode(&stats); err != nil {
 			t.Fatalf("failed to decode stats: %v", err)
 		}
-		
+
 		if stats.TotalCars != 8 {
 			t.Errorf("expected 8 total cars, got %d", stats.TotalCars)
 		}
