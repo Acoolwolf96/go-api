@@ -28,5 +28,6 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t 192.168.1.172:30500/go-api:${{ github.sha }} .
+          docker build -t 192.168.1.172:30500/go-api:${{ github.sha }} -t 192.168.1.172:30500/go-api:latest .
           docker push 192.168.1.172:30500/go-api:${{ github.sha }}
+          docker push 192.168.1.172:30500/go-api:latest
